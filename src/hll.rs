@@ -2,25 +2,26 @@ use libc::c_char;
 use probably::frequency::HyperLogLog;
 
 #[no_mangle]
-pub extern "C" fn hll_new(error_rate: f64) -> *mut u64 {
+pub extern "C" fn hll_new(error_rate: f64) -> *mut HyperLogLog {
     let hll = HyperLogLog::new(error_rate);
     let hll = Box::new(hll);
-    Box::into_raw(hll) as _
+    Box::into_raw(hll)
 }
 
 #[no_mangle]
-pub extern "C" fn hll_new_from_keys(error_rate: f64, key0: u64, key1: u64) -> *mut u64 {
+pub extern "C" fn hll_new_from_keys(error_rate: f64, key0: u64, key1: u64) -> *mut HyperLogLog {
     let hll = HyperLogLog::new_from_keys(error_rate, key0, key1);
     let hll = Box::new(hll);
-    Box::into_raw(hll) as _
+    Box::into_raw(hll)
 }
 
 macro_rules! hll_insert {
     ($func: ident, $ty: ty) => {
         #[no_mangle]
-        pub extern "C" fn $func(hll: *mut HyperLogLog, value: $ty) {
-            let hll = unsafe { &mut *hll };
+        pub unsafe extern "C" fn $func(hll: *mut HyperLogLog, value: $ty) {
+            let mut hll: Box<HyperLogLog> = Box::from_raw(hll);
             hll.insert(&value);
+            Box::leak(hll);
         }
     };
 }
@@ -36,28 +37,23 @@ hll_insert!(hll_insert_u64, u64);
 hll_insert!(hll_insert_bool, bool);
 
 #[no_mangle]
-pub extern "C" fn hll_insert_str(hll: *mut HyperLogLog, value: *const c_char) {
-    let hll = unsafe { &mut *hll };
-
-    let value = unsafe {
-        assert!(!value.is_null());
-        std::ffi::CStr::from_ptr(value)
-    };
+pub unsafe extern "C" fn hll_insert_str(hll: *mut HyperLogLog, value: *const c_char) {
+    assert!(!value.is_null());
+    let mut hll: Box<HyperLogLog> = Box::from_raw(hll);
+    let value = std::ffi::CStr::from_ptr(value);
 
     hll.insert(&value);
 }
 
 #[no_mangle]
-pub extern "C" fn hll_len(hll: *const HyperLogLog) -> f64 {
-    let hll = unsafe { &*hll };
-    hll.len()
+pub unsafe extern "C" fn hll_len(hll: *mut HyperLogLog) -> f64 {
+    let hll: Box<HyperLogLog> = Box::from_raw(hll);
+    let len = Box::leak(hll);
+    len.len()
 }
 
 #[no_mangle]
-pub extern "C" fn hll_drop(hll: *mut HyperLogLog) {
-    use std::{alloc, ptr};
-    unsafe {
-        ptr::drop_in_place(hll);
-        alloc::dealloc(hll as *mut u8, alloc::Layout::new::<HyperLogLog>());
-    }
+pub unsafe extern "C" fn hll_drop(hll: *mut HyperLogLog) {
+    let hll: Box<HyperLogLog> = Box::from_raw(hll);
+    std::mem::drop(hll);
 }
