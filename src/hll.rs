@@ -1,19 +1,18 @@
 use libc::c_char;
 use probably::frequency::HyperLogLog;
-use std::mem::transmute;
 
 #[no_mangle]
-pub extern "C" fn hll_new(error_rate: f64) -> *const u64 {
+pub extern "C" fn hll_new(error_rate: f64) -> *mut u64 {
     let hll = HyperLogLog::new(error_rate);
     let hll = Box::new(hll);
-    unsafe { transmute(&*hll) }
+    Box::into_raw(hll) as _
 }
 
 #[no_mangle]
-pub extern "C" fn hll_new_from_keys(error_rate: f64, key0: u64, key1: u64) -> *const u64 {
+pub extern "C" fn hll_new_from_keys(error_rate: f64, key0: u64, key1: u64) -> *mut u64 {
     let hll = HyperLogLog::new_from_keys(error_rate, key0, key1);
     let hll = Box::new(hll);
-    unsafe { transmute(&*hll) }
+    Box::into_raw(hll) as _
 }
 
 macro_rules! hll_insert {
@@ -55,7 +54,10 @@ pub extern "C" fn hll_len(hll: *const HyperLogLog) -> f64 {
 }
 
 #[no_mangle]
-pub extern "C" fn hll_drop(hll: *const HyperLogLog) {
-    let hll = unsafe { &*hll };
-    drop(hll);
+pub extern "C" fn hll_drop(hll: *mut HyperLogLog) {
+    use std::{alloc, ptr};
+    unsafe {
+        ptr::drop_in_place(hll);
+        alloc::dealloc(hll as *mut u8, alloc::Layout::new::<HyperLogLog>());
+    }
 }
