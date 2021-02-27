@@ -19,6 +19,7 @@ macro_rules! hll_insert {
     ($func: ident, $ty: ty) => {
         #[no_mangle]
         pub unsafe extern "C" fn $func(hll: *mut HyperLogLog, value: $ty) {
+            assert!(!hll.is_null());
             let mut hll: Box<HyperLogLog> = Box::from_raw(hll);
             hll.insert(&value);
             Box::leak(hll);
@@ -38,15 +39,17 @@ hll_insert!(hll_insert_bool, bool);
 
 #[no_mangle]
 pub unsafe extern "C" fn hll_insert_str(hll: *mut HyperLogLog, value: *const c_char) {
+    assert!(!hll.is_null());
     assert!(!value.is_null());
     let mut hll: Box<HyperLogLog> = Box::from_raw(hll);
     let value = std::ffi::CStr::from_ptr(value);
-
     hll.insert(&value);
+    Box::leak(hll);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn hll_len(hll: *mut HyperLogLog) -> f64 {
+    assert!(!hll.is_null());
     let hll: Box<HyperLogLog> = Box::from_raw(hll);
     let len = Box::leak(hll);
     len.len()
@@ -54,6 +57,8 @@ pub unsafe extern "C" fn hll_len(hll: *mut HyperLogLog) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn hll_drop(hll: *mut HyperLogLog) {
-    let hll: Box<HyperLogLog> = Box::from_raw(hll);
-    std::mem::drop(hll);
+    if !hll.is_null() {
+        let hll: Box<HyperLogLog> = Box::from_raw(hll);
+        std::mem::drop(hll);
+    }
 }

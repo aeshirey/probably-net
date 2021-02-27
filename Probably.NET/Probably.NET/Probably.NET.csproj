@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="HyperLogLog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QuantileGK.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="probably_net.dll">

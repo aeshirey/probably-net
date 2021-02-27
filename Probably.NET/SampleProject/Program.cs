@@ -1,9 +1,5 @@
 ﻿using Probably.NET;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SampleProject
 {
@@ -12,6 +8,7 @@ namespace SampleProject
         static void Main(string[] args)
         {
             SampleHLL();
+            SampleQuantileGK();
         }
 
         static void SampleHLL()
@@ -24,11 +21,33 @@ namespace SampleProject
             hll.Insert(5);
             //hll.Insert((sbyte)5);
             hll.Insert(0);
+            Console.WriteLine($"hll size: {hll.Count()}");
 
             hll.Insert("hello");
             Console.WriteLine($"hll size: {hll.Count()}");
-            hll.Insert("world");
+            hll.Insert("world!");
             Console.WriteLine($"hll size: {hll.Count()}");
+        }
+
+        static void SampleQuantileGK()
+        {
+            var gk = new QuantileGK(0.01);
+            for (int i = 0; i < 1000; i++)
+            {
+                gk.Insert((double)i);
+            }
+
+            double p50 = gk.Quantile(0.5),
+                p75 = gk.Quantile(0.75),
+                p90 = gk.Quantile(0.9),
+                p95 = gk.Quantile(0.95),
+                p99 = gk.Quantile(0.99);
+
+            Console.WriteLine($"P50 = {p50}");
+            Console.WriteLine($"P75 = {p75}");
+            Console.WriteLine($"P90 = {p90}");
+            Console.WriteLine($"P95 = {p95}");
+            Console.WriteLine($"P99 = {p99}");
         }
     }
 }
