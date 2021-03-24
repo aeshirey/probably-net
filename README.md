@@ -1,7 +1,10 @@
 # probably-net
-FFI &amp; C# pinvokes for the [`probably` Rust crate](http://crates.io/crates/probably). Very much a work-in-progress.
+FFI &amp; C# pinvokes for the [`probably` Rust crate](http://crates.io/crates/probably). Very much a work-in-progress. Currently, this crate provides .NET access to:
 
-To build the DLL for Windows, add the following to `~/.cargo/config`:
+* HyperLogLog
+* Greenwald-Khanna quantile estimator
+
+'Official' release forthcoming, but in the meantime, [`probably_net.dll`](https://github.com/aeshirey/probably-net/blob/main/Probably.NET/Probably.NET/probably_net.dll) is a stripped release build you can use with this project. To build this DLL yourself, add the following to `~/.cargo/config`:
 
 ```
 [target.x86_64-pc-windows-gnu]

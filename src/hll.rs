@@ -1,5 +1,6 @@
 use libc::c_char;
 use probably::frequency::HyperLogLog;
+use std::slice;
 
 #[no_mangle]
 pub extern "C" fn hll_new(error_rate: f64) -> *mut HyperLogLog {
@@ -13,6 +14,70 @@ pub extern "C" fn hll_new_from_keys(error_rate: f64, key0: u64, key1: u64) -> *m
     let hll = HyperLogLog::new_from_keys(error_rate, key0, key1);
     let hll = Box::new(hll);
     Box::into_raw(hll)
+}
+
+#[no_mangle]
+pub extern "C" fn hll_new_from_bytes(bytes: *const u8, len: usize) -> *mut HyperLogLog {
+    assert!(!bytes.is_null());
+    assert!(len > 0);
+
+    let bytes = unsafe { slice::from_raw_parts(bytes, len) };
+
+    let hll = rmp_serde::from_slice(bytes).unwrap();
+    let hll = Box::new(hll);
+    Box::into_raw(hll)
+}
+
+#[no_mangle]
+pub extern "C" fn hll_get_bytes(
+    hll: *mut HyperLogLog,
+    len: &mut usize,
+    cap: &mut usize,
+) -> *mut u8 {
+    assert!(!hll.is_null());
+    let hll: Box<HyperLogLog> = unsafe { Box::from_raw(hll) };
+
+    let mut serialized = if let Ok(serialized) = rmp_serde::to_vec(&hll) {
+        serialized
+    } else {
+        Box::leak(hll);
+        return std::ptr::null_mut();
+    };
+
+    // Set the 'out' parameters
+    *len = serialized.len();
+    *cap = serialized.capacity();
+    let ptr = serialized.as_mut_ptr();
+
+    // Prevent this array from being collected
+    std::mem::forget(serialized);
+    Box::leak(hll);
+    ptr
+}
+
+#[no_mangle]
+pub extern "C" fn hll_free_bytes(bytes: *mut u8, len: usize, cap: usize) {
+    assert!(!bytes.is_null());
+    assert!(len > 0);
+    assert!(cap > 0);
+
+    let serialized = unsafe { Vec::from_raw_parts(bytes, len, cap) };
+
+    // Manually drop for fun.
+    drop(serialized);
+}
+
+#[no_mangle]
+pub extern "C" fn hll_merge(hll1: *mut HyperLogLog, hll2: *mut HyperLogLog) {
+    assert!(!hll1.is_null());
+    assert!(!hll2.is_null());
+    let mut hll1: Box<HyperLogLog> = unsafe { Box::from_raw(hll1) };
+    let hll2: Box<HyperLogLog> = unsafe { Box::from_raw(hll2) };
+
+    hll1.merge(&hll2);
+
+    Box::leak(hll1);
+    Box::leak(hll2);
 }
 
 macro_rules! hll_insert {

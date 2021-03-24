@@ -13,20 +13,33 @@ namespace SampleProject
 
         static void SampleHLL()
         {
-            var hll = new HyperLogLog(0.01);
-            hll.Insert(123);
-            hll.Insert(234);
-            hll.Insert(2);
-            hll.Insert(5);
-            hll.Insert(5);
-            //hll.Insert((sbyte)5);
-            hll.Insert(0);
-            Console.WriteLine($"hll size: {hll.Count()}");
+            HyperLogLog hll1 = new HyperLogLog(0.01, 1234, 5678),
+                hll2 = new HyperLogLog(0.01, 1234, 5678);
+            hll1.Insert(123);
+            hll1.Insert(234);
+            hll1.Insert(2);
+            hll1.Insert(5);
 
-            hll.Insert("hello");
-            Console.WriteLine($"hll size: {hll.Count()}");
-            hll.Insert("world!");
-            Console.WriteLine($"hll size: {hll.Count()}");
+            hll1.Insert(0);
+            Console.WriteLine($"hll size: {hll1.Count()}");
+
+            hll2.Insert(5);
+            hll2.Insert("hello");
+            hll2.Insert("world!");
+            Console.WriteLine($"hll1 size: {hll1.Count()}");
+            Console.WriteLine($"hll2 size: {hll2.Count()}");
+
+            hll1.MergeWith(hll2);
+
+
+            hll1.Insert("another string");
+            Console.WriteLine($"hll1 size: {hll1.Count()}");
+
+            byte[] serialized = hll1.GetBytes();
+
+            HyperLogLog deserialized = new HyperLogLog(serialized);
+            Console.WriteLine($"deserialized size: {deserialized.Count()}");
+
         }
 
         static void SampleQuantileGK()
@@ -48,6 +61,16 @@ namespace SampleProject
             Console.WriteLine($"P90 = {p90}");
             Console.WriteLine($"P95 = {p95}");
             Console.WriteLine($"P99 = {p99}");
+
+
+            byte[] serialized = gk.GetBytes();
+
+
+            QuantileGK gk2 = new QuantileGK(serialized);
+            Console.WriteLine($"P80 = {gk.Quantile(0.8)}");
+            gk2.Insert(100000);
+            Console.WriteLine($"P80 = {gk.Quantile(0.8)}");
+
         }
     }
 }
